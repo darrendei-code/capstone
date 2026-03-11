@@ -389,7 +389,15 @@ function parseCSV(text) {
   let row = [];
   let cell = '';
   let inQuotes = false;
-  const pushCell = () => { row.push(cell); cell = ''; };
+
+  const LF = String.fromCharCode(10);
+  const CR = String.fromCharCode(13);
+
+  const pushCell = () => {
+    row.push(cell);
+    cell = '';
+  };
+
   const pushRow = () => {
     if (row.length > 1 || (row.length === 1 && row[0] !== '') || cell !== '') {
       pushCell();
@@ -397,9 +405,11 @@ function parseCSV(text) {
     }
     row = [];
   };
+
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     const next = text[i + 1];
+
     if (ch === '"') {
       if (inQuotes && next === '"') {
         cell += '"';
@@ -409,25 +419,30 @@ function parseCSV(text) {
       }
     } else if (ch === ',' && !inQuotes) {
       pushCell();
-    } else if ((ch === '
-' || ch === '') && !inQuotes) {
-      if (ch === '' && next === '
-') i++;
+    } else if ((ch === LF || ch === CR) && !inQuotes) {
+      if (ch === CR && next === LF) i++;
       pushRow();
     } else {
       cell += ch;
     }
   }
+
   if (cell.length || row.length) pushRow();
   if (!rows.length) return [];
-  const headers = rows[0].map(h => h.trim());
-  return rows.slice(1).map(cols => {
-    const obj = {};
-    headers.forEach((h, idx) => obj[h] = (cols[idx] || '').trim());
-    return obj;
-  }).filter(r => Object.values(r).some(Boolean));
-}
 
+  const headers = rows[0].map(h => h.trim());
+
+  return rows
+    .slice(1)
+    .map(cols => {
+      const obj = {};
+      headers.forEach((h, idx) => {
+        obj[h] = (cols[idx] || '').trim();
+      });
+      return obj;
+    })
+    .filter(r => Object.values(r).some(Boolean));
+}
 function normalizeLevel(value) {
   const v = (value || '').trim().toLowerCase();
   if (['low', 'medium', 'high'].includes(v)) return v;
